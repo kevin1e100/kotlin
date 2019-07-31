@@ -55,3 +55,9 @@ interface KotlinTarget : Named, HasAttributes {
 
     override fun getName(): String = targetName
 }
+
+interface KotlinTargetWithTests<E : KotlinExecution.ExecutionSource, out T : KotlinTargetTestRun<E>> : KotlinTarget {
+    /** The container with the test run executions.
+     * A target may automatically create and configure a test run by the name [KotlinExecution.DEFAULT_EXECUTION_NAME]. */
+    val testRuns: NamedDomainObjectContainer<out T>
+}
