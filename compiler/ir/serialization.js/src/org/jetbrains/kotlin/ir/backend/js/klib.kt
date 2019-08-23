@@ -11,10 +11,7 @@ import org.jetbrains.kotlin.backend.common.serialization.DescriptorTable
 import org.jetbrains.kotlin.library.impl.buildKoltinLibrary
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.builtins.functions.functionInterfacePackageFragmentProvider
-import org.jetbrains.kotlin.config.CommonConfigurationKeys
-import org.jetbrains.kotlin.config.CompilerConfiguration
-import org.jetbrains.kotlin.config.LanguageVersionSettings
-import org.jetbrains.kotlin.config.languageVersionSettings
+import org.jetbrains.kotlin.config.*
 import org.jetbrains.kotlin.descriptors.ModuleDescriptor
 import org.jetbrains.kotlin.descriptors.impl.CompositePackageFragmentProvider
 import org.jetbrains.kotlin.descriptors.impl.ModuleDescriptorImpl
@@ -24,6 +21,7 @@ import org.jetbrains.kotlin.ir.backend.js.lower.serialization.metadata.*
 import org.jetbrains.kotlin.ir.declarations.IrModuleFragment
 import org.jetbrains.kotlin.ir.descriptors.IrBuiltIns
 import org.jetbrains.kotlin.ir.util.ExpectDeclarationRemover
+import org.jetbrains.kotlin.ir.util.IrDeserializer
 import org.jetbrains.kotlin.ir.util.SymbolTable
 import org.jetbrains.kotlin.ir.visitors.acceptVoid
 import org.jetbrains.kotlin.js.analyze.TopDownAnalyzerFacadeForJS
@@ -150,7 +148,7 @@ private fun runAnalysisAndPreparePsi2Ir(depsDescriptors: ModulesStructure): Gene
     )
 }
 
-fun GeneratorContext.generateModuleFragment(files: List<KtFile>, deserializer: JsIrLinker? = null) =
+fun GeneratorContext.generateModuleFragment(files: List<KtFile>, deserializer: IrDeserializer? = null) =
     Psi2IrTranslator(languageVersionSettings, configuration).generateModuleFragment(this, files, deserializer)
 
 
@@ -199,7 +197,25 @@ private fun loadKlibMetadata(
     return md
 }
 
-class ModulesStructure(
+fun getModuleDescriptorByLibrary(
+    current: KotlinLibrary
+): ModuleDescriptorImpl {
+    val parts = loadKlibMetadataParts(current)
+    val isBuiltIns = parts.importedModules.isEmpty()
+    return loadKlibMetadata(
+        parts,
+        current,
+        isBuiltIns,
+        LookupTracker.DO_NOTHING,
+        LockBasedStorageManager("ModulesStructure"),
+        JsKlibMetadataVersion.INSTANCE,
+        LanguageVersionSettingsImpl.DEFAULT,
+        null,
+        emptyList()
+    )
+}
+
+private class ModulesStructure(
     private val project: Project,
     private val files: List<KtFile>,
     val compilerConfiguration: CompilerConfiguration,
